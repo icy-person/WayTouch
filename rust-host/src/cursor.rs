@@ -734,12 +734,14 @@ mod tests {
     fn cursor_visibility_stream_stays_ordered_and_terminates_when_acknowledged() {
         use std::io::Write;
         use std::net::TcpListener;
+        use std::sync::mpsc;
 
         const TRANSITIONS: usize = 1_000;
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let token = "e".repeat(64);
         let server_token = token.clone();
+        let (first_show_tx, first_show_rx) = mpsc::channel();
 
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
@@ -748,28 +750,36 @@ mod tests {
                 .unwrap();
             authenticate_cursor_test_peer(&mut stream, &server_token);
 
+            // Synchronize with the producer before it starts the transition
+            // burst. close() may supersede queued events with OFF, so an
+            // unacknowledged initial SHOW is not guaranteed to survive.
+            let first = read_cursor_line(&mut stream);
+            assert!(first.starts_with("SHOW "), "first state: {first:?}");
+            stream.write_all(b"OK CURSOR\n").unwrap();
+            stream.flush().unwrap();
+            first_show_tx.send(()).unwrap();
+
             // The producer must never block, so the number of delivered lines
             // depends on how the backlog coalesces while the worker drains it.
-            // Validate every delivered line and that the stream ends with OFF.
-            let mut saw_show = false;
+            // Validate every delivered line and acknowledge OFF as well.
             loop {
                 let line = read_cursor_line(&mut stream);
-                if line.trim() == "OFF" {
-                    break;
-                } else if line.starts_with("SHOW ") {
-                    saw_show = true;
-                } else {
+                let terminal = line.trim() == "OFF";
+                if !terminal && !line.starts_with("SHOW ") {
                     assert_eq!(line.trim(), "HIDE", "unexpected line: {line:?}");
                 }
                 stream.write_all(b"OK CURSOR\n").unwrap();
                 stream.flush().unwrap();
+                if terminal {
+                    break;
+                }
             }
-            assert!(saw_show, "at least one SHOW state must be delivered");
         });
 
         let publisher = CursorPublisher::with_endpoint(address, Some(token));
         let started = std::time::Instant::now();
         publisher.publish("SHOW 0.5 0.5 pointer 28.0 #ff3158\n");
+        first_show_rx.recv_timeout(Duration::from_secs(2)).unwrap();
         for index in 0..(TRANSITIONS / 2) {
             publisher.publish("HIDE\n");
             publisher.publish(&format!(
