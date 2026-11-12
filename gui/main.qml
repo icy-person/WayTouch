@@ -931,7 +931,7 @@ ApplicationWindow {
                                             onMoved: wayTouchApi.setValue("mouse.look.touch_scale", Number(value.toFixed(2)))
                                         }
                                         Label {
-                                            text: "The virtual camera finger shares Android's ten-pointer limit with movement and action buttons. Keep room for the controls you use simultaneously."
+                                            text: "You can configure as many action buttons as needed. Android supports up to ten simultaneous pointers, including movement and the optional camera finger."
                                             color: "#8fa5ba"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                         }
                                     }

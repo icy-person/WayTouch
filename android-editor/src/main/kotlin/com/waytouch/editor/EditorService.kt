@@ -1070,7 +1070,7 @@ class EditorService : Service() {
                 if (readEditorBoundedLine(input, 80) != "OK AUTH") return null
                 writer.write("GET\n")
                 writer.flush()
-                val line = readEditorBoundedLine(input, 16 * 1024) ?: return null
+                val line = readEditorBoundedLine(input, 1024 * 1024) ?: return null
                 if (line == "NONE" || line.startsWith("ERR")) return null
                 val envelope = JSONObject(line)
                 val revision = envelope.getLong("revision")
@@ -1096,7 +1096,7 @@ class EditorService : Service() {
                 if (readEditorBoundedLine(input, 80) != "OK AUTH") return null
                 writer.write("SET " + layoutRevision + " " + layout.toJson() + "\n")
                 writer.flush()
-                val reply = readEditorBoundedLine(input, 16 * 1024).orEmpty()
+                val reply = readEditorBoundedLine(input, 1024 * 1024).orEmpty()
                 Log.i(TAG, "Layout SET reply=" + reply)
                 if (reply.startsWith("OK ")) reply.removePrefix("OK ").toLongOrNull() else null
             }
@@ -1237,7 +1237,8 @@ class EditorService : Service() {
         private var cachedDisplayWidth = 0
         private var cachedDisplayHeight = 0
 
-        private val keyOptions = listOf(
+        private val keyOptions = buildList {
+            addAll(listOf(
             TriggerOption("A", "key", 30), TriggerOption("B", "key", 48),
             TriggerOption("C", "key", 46), TriggerOption("D", "key", 32),
             TriggerOption("E", "key", 18), TriggerOption("F", "key", 33),
@@ -1268,13 +1269,28 @@ class EditorService : Service() {
             TriggerOption("CAPS", "key", 58), TriggerOption("HOME", "key", 102),
             TriggerOption("END", "key", 107), TriggerOption("PGUP", "key", 104),
             TriggerOption("PGDN", "key", 109), TriggerOption("INS", "key", 110),
-            TriggerOption("DEL", "key", 111)
-        )
-        private val mouseOptions = listOf(
-            TriggerOption("LMB", "mouse", 272), TriggerOption("RMB", "mouse", 273),
-            TriggerOption("MMB", "mouse", 274), TriggerOption("SIDE", "mouse", 275),
-            TriggerOption("EXTRA", "mouse", 276)
-        )
+                TriggerOption("DEL", "key", 111)
+            ))
+            val knownCodes = map { it.code }.toSet()
+        // Keep common keys human-readable, but expose every other Linux EV_KEY
+        // code too so the number of configurable actions is not tied to this list.
+            for (code in 1..767) {
+                if (code !in knownCodes && code !in 272..287) {
+                    add(TriggerOption("KEY_$code", "key", code))
+                }
+            }
+        }
+        private val mouseOptions = (272..287).map { code ->
+            val label = when (code) {
+                272 -> "LMB"
+                273 -> "RMB"
+                274 -> "MMB"
+                275 -> "SIDE"
+                276 -> "EXTRA"
+                else -> "BTN_${code - 271}"
+            }
+            TriggerOption(label, "mouse", code)
+        }
 
         private fun dp(value: Float) = value * density
 
@@ -1906,7 +1922,7 @@ class EditorService : Service() {
         }
 
         private fun reservedKey(code: Int): Boolean =
-            code in setOf(1, 29, 56, 59, 60, 97, 100) ||
+            code in setOf(1, 29, 56, 59, 60, 61, 97, 100) ||
                 code == layout.upKey || code == layout.leftKey ||
                 code == layout.downKey || code == layout.rightKey
 
@@ -2103,10 +2119,6 @@ class EditorService : Service() {
         }
 
         private fun addControl(source: String) {
-            if (layout.buttons.size >= 9) {
-                Toast.makeText(applicationContext, "حداکثر ۹ دکمهٔ عملیاتی پشتیبانی می‌شود.", Toast.LENGTH_LONG).show()
-                return
-            }
             val options = if (source == "key") keyOptions else mouseOptions
             val option = options.firstOrNull { !triggerTaken(it) }
             if (option == null) {

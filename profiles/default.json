@@ -1,5 +1,5 @@
 {
-  "layout_revision": 1793879447629,
+  "layout_revision": 1793879447633,
   "display": {
     "width": 1920,
     "height": 1042,
@@ -18,10 +18,10 @@
   },
   "movement": {
     "center": [
-      0.17999999,
-      0.825
+      0.19,
+      0.685
     ],
-    "radius": 0.14856073,
+    "radius": 0.14024487,
     "keys": {
       "up": 17,
       "left": 30,
@@ -31,7 +31,7 @@
   },
   "mouse": {
     "enabled": true,
-    "cursor_speed": 1.58,
+    "cursor_speed": 2.74,
     "native_buttons": true,
     "cursor": {
       "enabled": true,
@@ -46,8 +46,8 @@
       "hold_button": 273,
       "activation_mode": "toggle",
       "hold_button_passthrough": true,
-      "sensitivity_x": 1.0,
-      "sensitivity_y": 1.0,
+      "sensitivity_x": 1.5,
+      "sensitivity_y": 1.55,
       "invert_y": false,
       "smoothing": 0.0,
       "deadzone": 0.0,
@@ -78,8 +78,8 @@
       "source": "key",
       "code": 57,
       "position": [
-        0.75,
-        0.895
+        0.955,
+        0.72499996
       ]
     },
     {
@@ -87,8 +87,8 @@
       "source": "key",
       "code": 19,
       "position": [
-        0.955,
-        0.775
+        0.78999996,
+        0.93
       ]
     },
     {
@@ -96,8 +96,8 @@
       "source": "mouse",
       "code": 272,
       "position": [
-        0.825,
-        0.71999997
+        0.85999995,
+        0.76
       ]
     },
     {
@@ -105,8 +105,8 @@
       "source": "mouse",
       "code": 273,
       "position": [
-        0.91999996,
-        0.59
+        0.965,
+        0.525
       ]
     },
     {
@@ -114,8 +114,8 @@
       "source": "key",
       "code": 46,
       "position": [
-        0.875,
-        0.895
+        0.84999996,
+        0.91999996
       ]
     },
     {
@@ -123,8 +123,8 @@
       "source": "key",
       "code": 42,
       "position": [
-        0.89,
-        0.105
+        0.91499996,
+        0.13
       ]
     },
     {
@@ -132,8 +132,53 @@
       "source": "key",
       "code": 33,
       "position": [
-        0.76,
-        0.59999996
+        0.34,
+        0.75
+      ]
+    },
+    {
+      "name": "action_8",
+      "source": "key",
+      "code": 2,
+      "position": [
+        0.42499998,
+        0.895
+      ]
+    },
+    {
+      "name": "action_9",
+      "source": "key",
+      "code": 3,
+      "position": [
+        0.545,
+        0.905
+      ]
+    },
+    {
+      "name": "action_10",
+      "source": "key",
+      "code": 45,
+      "position": [
+        0.065,
+        0.905
+      ]
+    },
+    {
+      "name": "action_11",
+      "source": "key",
+      "code": 16,
+      "position": [
+        0.475,
+        0.29
+      ]
+    },
+    {
+      "name": "action_12",
+      "source": "key",
+      "code": 18,
+      "position": [
+        0.545,
+        0.29
       ]
     }
   ]

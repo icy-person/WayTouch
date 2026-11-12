@@ -25,7 +25,7 @@ import kotlin.concurrent.thread
  */
 internal object LayoutConfigServer {
     private const val PORT = 27184
-    private const val MAX_LINE_BYTES = 16 * 1024
+    private const val MAX_LINE_BYTES = 1024 * 1024
     private val stateFile = File("/data/local/tmp/waytouch-layout.json")
     private val stateLock = Any()
     private val clients = ThreadPoolExecutor(
@@ -193,8 +193,8 @@ internal object LayoutConfigServer {
             .put("center", JSONArray().put(x).put(y))
             .put("radius", radius)
         val movementCodes = HashSet<Int>()
-        // Linux evdev keycodes: Ctrl/Alt/Esc emergency chord and F2 global mouse lock.
-        val reservedKeys = setOf(1, 29, 56, 60, 97, 100)
+        // Reserve F1 capture, F2 mouse mapping, F3 camera aim and the Ctrl/Alt/Esc emergency chord.
+        val reservedKeys = setOf(1, 29, 56, 59, 60, 61, 97, 100)
         if (movement.has("keys")) {
             val keys = movement.getJSONObject("keys")
             require(keys.length() == 4 && listOf("up", "left", "down", "right").all(keys::has)) {
@@ -212,7 +212,6 @@ internal object LayoutConfigServer {
         }
 
         val buttons = root.getJSONArray("buttons")
-        require(buttons.length() <= 9) { "at most nine action buttons are supported" }
         val seen = HashSet<String>()
         val triggers = HashSet<String>()
         val cleanButtons = JSONArray()

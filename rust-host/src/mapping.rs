@@ -339,12 +339,6 @@ impl Profile {
                 ));
             }
         }
-        if self.buttons.len() + 1 > MAX_POINTERS {
-            return Err(format!(
-                "profile defines too many touch controls: at most {} pointers including movement",
-                MAX_POINTERS
-            ));
-        }
         Ok(())
     }
 
@@ -588,10 +582,6 @@ impl TouchMapper {
         {
             return Err("Android layout contains invalid movement coordinates or radius".into());
         }
-        if layout.buttons.len() > MAX_POINTERS - 1 {
-            return Err("Android layout exceeds the nine action-button limit".into());
-        }
-
         let next_keys = layout
             .movement
             .keys
@@ -1232,6 +1222,50 @@ mod tests {
         let frames = events.lock().unwrap();
         assert_eq!(frames[2].0, Action::PointerUp);
         assert_eq!(frames[3].0, Action::Up);
+    }
+
+    #[test]
+    fn profile_and_android_layout_accept_more_than_nine_action_buttons() {
+        let mut many = profile();
+        many.buttons.clear();
+        for index in 0..20u16 {
+            many.buttons.push(ButtonConfig {
+                name: format!("action_{index}"),
+                source: ButtonSource::Key,
+                code: 200 + index,
+                position: [
+                    0.1 + (index % 8) as f32 * 0.1,
+                    0.1 + (index / 8) as f32 * 0.2,
+                ],
+            });
+        }
+        assert!(many.validate().is_ok());
+
+        let mut mapper = TouchMapper::new(profile());
+        let (_, mut send) = capture();
+        let buttons = (0..20u16)
+            .map(|index| {
+                serde_json::json!({
+                    "name": format!("action_{index}"),
+                    "position": [0.1 + (index % 8) as f32 * 0.1, 0.1 + (index / 8) as f32 * 0.2],
+                    "source": "key",
+                    "code": 200 + index
+                })
+            })
+            .collect::<Vec<_>>();
+        let layout: LayoutSnapshot = serde_json::from_value(serde_json::json!({
+            "movement": { "center": [0.16, 0.78], "radius": 0.07 },
+            "buttons": buttons
+        }))
+        .unwrap();
+
+        mapper.apply_layout(layout, &mut send).unwrap();
+        assert_eq!(mapper.profile.buttons.len(), 20);
+        mapper
+            .handle_frame(&key_frame("/dev/input/event2", 219, 1), &mut send)
+            .unwrap();
+        assert_eq!(mapper.buttons_held.len(), 1);
+        assert_eq!(mapper.active.len(), 1);
     }
 
     #[test]

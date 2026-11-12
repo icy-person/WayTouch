@@ -11,6 +11,7 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 /**
@@ -24,8 +25,11 @@ internal object MouseInputServer {
     private val FIELD_SEPARATOR = Regex("\\s+")
     private val SUPPORTED_ACTIONS = setOf(3, 7, 8, 9, 10, 11, 12, 13)
     private val DROPPABLE_ACTIONS = setOf(3, 7, 8, 9, 10)
+    private val controllerActive = AtomicBoolean(false)
+    // One worker owns the persistent input stream; the second remains free
+    // for short authenticated PING probes while that stream is idle or active.
     private val clients = ThreadPoolExecutor(
-        1, 2, 30L, TimeUnit.SECONDS, ArrayBlockingQueue(4),
+        2, 2, 30L, TimeUnit.SECONDS, ArrayBlockingQueue(4),
         ThreadPoolExecutor.AbortPolicy()
     )
 
@@ -75,13 +79,55 @@ internal object MouseInputServer {
     private fun handle(socket: Socket) {
         val state = ClientState()
         var reportedActive = false
+        var ownsController = false
         socket.use { client ->
             try {
                 if (!IpcAuth.authenticate(client)) return
-                client.soTimeout = 0
                 client.keepAlive = true
                 val input = BufferedInputStream(client.getInputStream(), 8 * 1024)
                 val output = client.getOutputStream()
+
+                // A health probe must be serviceable while the real controller
+                // keeps its persistent WTM3 stream open. It never owns the input
+                // slot and never injects or queries a MotionEvent.
+                client.soTimeout = 1_000
+                var line = readBoundedLine(input, MAX_LINE_LENGTH) ?: return
+                if (line == "PING") {
+                    output.write("PONG\n".toByteArray(Charsets.US_ASCII))
+                    output.flush()
+                    return
+                }
+                // Older GUI versions use a one-shot WTM3 position query for
+                // their health probe. It remains read-only and does not own the
+                // persistent controller slot.
+                if (line.startsWith("WTM3 ")) {
+                    val probeFields = line.trim().split(FIELD_SEPARATOR)
+                    if (probeFields.size == 9 && probeFields[0] == "WTM3" && probeFields[2] == "13") {
+                        val sequence = probeFields[1].toLongOrNull()
+                        val zeroPayload = probeFields.drop(3).all { it.toFloatOrNull() == 0f }
+                        if (sequence != null && sequence in 1..0xffff_ffffL && zeroPayload) {
+                            writeAck(output, sequence)
+                            return
+                        }
+                    }
+                    System.err.println("WTCH mouse rejected controller without CONTROL registration")
+                    return
+                }
+                if (line != "CONTROL") {
+                    System.err.println("WTCH mouse rejected unknown initial command")
+                    return
+                }
+                if (!controllerActive.compareAndSet(false, true)) {
+                    output.write("ERR BUSY\n".toByteArray(Charsets.US_ASCII))
+                    output.flush()
+                    return
+                }
+                ownsController = true
+                client.soTimeout = 0
+                output.write("OK CONTROL\n".toByteArray(Charsets.US_ASCII))
+                output.flush()
+                line = readBoundedLine(input, MAX_LINE_LENGTH) ?: return
+
                 var acceptedMotion = 0L
                 var droppedMotion = 0L
                 var statsStarted = SystemClock.uptimeMillis()
@@ -99,7 +145,6 @@ internal object MouseInputServer {
                     }
                 }
                 while (true) {
-                    val line = readBoundedLine(input, MAX_LINE_LENGTH) ?: break
                     val fields = line.trim().split(FIELD_SEPARATOR)
                     require(fields.size == 9 && fields[0] == "WTM3") { "invalid mouse frame format" }
                     val sequence = fields[1].toLong()
@@ -132,6 +177,7 @@ internal object MouseInputServer {
                         // Position query is a protocol barrier: it changes no input state.
                         state.lastSequence = sequence
                         writeAck(output, sequence)
+                        line = readBoundedLine(input, MAX_LINE_LENGTH) ?: break
                         continue
                     }
 
@@ -144,6 +190,7 @@ internal object MouseInputServer {
                         println("WTCH_MOUSE_POINTER_MODE hidden_by_host=true")
                         state.lastSequence = sequence
                         writeAck(output, sequence)
+                        line = readBoundedLine(input, MAX_LINE_LENGTH) ?: break
                         continue
                     }
                     val action = when (rawAction) {
@@ -201,6 +248,7 @@ internal object MouseInputServer {
                         if (rawAction == 7 || rawAction == 8 || rawAction == 9) droppedMotion += 1L
                         writeAck(output, sequence)
                         reportStatsIfDue()
+                        line = readBoundedLine(input, MAX_LINE_LENGTH) ?: break
                         continue
                     }
                     check(accepted) {
@@ -225,11 +273,13 @@ internal object MouseInputServer {
                                 " actionButton=" + actionButton + " buttons=" + eventButtons
                         )
                     }
+                    line = readBoundedLine(input, MAX_LINE_LENGTH) ?: break
                 }
                 println("WTCH mouse client disconnected cleanly")
             } catch (error: Exception) {
                 System.err.println("WTCH mouse client error type=" + error.javaClass.name + ": " + error.message)
             } finally {
+                if (ownsController) controllerActive.set(false)
                 if (state.buttons != 0) {
                     try {
                         val now = state.nextEventTime()

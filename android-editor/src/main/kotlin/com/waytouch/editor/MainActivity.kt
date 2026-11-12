@@ -184,7 +184,7 @@ class MainActivity : Activity() {
                 if (readBoundedLine(input, 80) != "OK AUTH") return false
                 output.write((command + "\n").toByteArray(Charsets.US_ASCII))
                 output.flush()
-                val reply = readBoundedLine(input, 16 * 1024) ?: return false
+                val reply = readBoundedLine(input, 1024 * 1024) ?: return false
                 if (expected == "{") reply.startsWith("{") else reply == expected
             }
         } catch (_: Exception) {

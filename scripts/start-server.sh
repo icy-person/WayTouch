@@ -189,18 +189,11 @@ with socket.create_connection(("127.0.0.1", 27186), timeout=0.5) as connection:
     with connection.makefile("r", encoding="ascii") as reader:
         if reader.readline().strip() != "OK AUTH":
             raise SystemExit("mouse authentication failed")
-        # Action 13 queries Android's authoritative absolute pointer position
-        # without moving it or injecting a button event.
-        connection.sendall(b"WTM3 1 13 0 0 0 0 0 0\n")
-        ack = reader.readline().split()
-        if len(ack) != 4 or ack[0] != "WTMA3" or ack[1] != "1":
-            raise SystemExit("mouse channel position ACK failed")
-        try:
-            x, y = float(ack[2]), float(ack[3])
-        except ValueError:
-            raise SystemExit("mouse channel returned invalid coordinates")
-        if not (math.isfinite(x) and math.isfinite(y) and x >= 0 and y >= 0):
-            raise SystemExit("mouse channel returned non-finite coordinates")
+        # PING is a read-only health command and never enters the controller's
+        # persistent mouse-event stream or competes for its exclusive slot.
+        connection.sendall(b"PING\n")
+        if reader.readline().strip() != "PONG":
+            raise SystemExit("mouse channel PING health check failed")
 PYMOUSE
   then
     mouse_ready=1

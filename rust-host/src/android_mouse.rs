@@ -105,7 +105,29 @@ struct MouseConnection {
 impl MouseConnection {
     fn new(writer: TcpStream) -> io::Result<Self> {
         let reader = BufReader::with_capacity(4096, writer.try_clone()?);
-        Ok(Self { writer, reader })
+        let mut connection = Self { writer, reader };
+        // Explicitly reserve the persistent controller slot. Short-lived PING
+        // and legacy position probes must never be mistaken for this stream.
+        connection.writer.write_all(b"CONTROL\n")?;
+        connection.writer.flush()?;
+        let mut response = String::new();
+        let read = connection.reader.read_line(&mut response)?;
+        if read == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "Android mouse server closed before CONTROL acknowledgement",
+            ));
+        }
+        if response.trim_end_matches(['\r', '\n']) != "OK CONTROL" {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                format!(
+                    "Android mouse controller registration rejected: {:?}",
+                    response.trim()
+                ),
+            ));
+        }
+        Ok(connection)
     }
 
     fn read_ack(&mut self, expected_sequence: u64) -> io::Result<(f32, f32)> {
@@ -578,6 +600,10 @@ mod tests {
         let server = thread::spawn(move || {
             let (mut socket, _) = listener.accept().unwrap();
             let mut reader = BufReader::new(socket.try_clone().unwrap());
+            let mut registration = String::new();
+            reader.read_line(&mut registration).unwrap();
+            assert_eq!(registration, "CONTROL\n");
+            socket.write_all(b"OK CONTROL\n").unwrap();
             let mut lines = Vec::new();
             for _ in 0..3 {
                 let mut line = String::new();

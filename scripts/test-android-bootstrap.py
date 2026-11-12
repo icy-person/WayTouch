@@ -27,6 +27,8 @@ touch_server = (ROOT / "android-server/src/main/kotlin/com/waytouch/Server.kt").
 mouse_server = (ROOT / "android-server/src/main/kotlin/com/waytouch/MouseInputServer.kt").read_text()
 auth_source = (ROOT / "android-server/src/main/kotlin/com/waytouch/IpcAuth.kt").read_text()
 layout_server = (ROOT / "android-server/src/main/kotlin/com/waytouch/LayoutConfigServer.kt").read_text()
+rust_mapping = (ROOT / "rust-host/src/mapping.rs").read_text()
+gui_source = (ROOT / "gui/waytouch.py").read_text()
 
 assert 'Regex("[0-9a-fA-F]{64}")' in bootstrap_source
 assert "EditorService.ACTION_START" in bootstrap_source
@@ -43,6 +45,15 @@ assert "private fun handleCursorCommand(line: String): Boolean" in service_sourc
 assert "commandSucceeded = handleCursorCommand(line)" in service_source
 assert 'output.write("OK CURSOR\\n".toByteArray(Charsets.US_ASCII))' in service_source
 assert "private fun showCursor(x: Float, y: Float, style: String, size: Float, color: Int): Boolean" in service_source
+assert "layout.buttons.size >= 9" not in service_source
+assert "buttons.length() <= 9" not in layout_server
+assert "self.buttons.len() + 1 > MAX_POINTERS" not in rust_mapping
+assert "layout.buttons.len() > MAX_POINTERS - 1" not in rust_mapping
+assert "len(buttons) >= 9" not in gui_source
+assert "for (code in 1..767)" in service_source
+assert "MAX_LINE_BYTES = 1024 * 1024" in layout_server
+assert "readEditorBoundedLine(input, 1024 * 1024)" in service_source
+assert "readBoundedLine(input, 1024 * 1024)" in (ROOT / "android-editor/src/main/kotlin/com/waytouch/editor/MainActivity.kt").read_text()
 assert "WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE" in service_source
 assert "WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE" in service_source
 assert "WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS" in service_source
@@ -95,7 +106,6 @@ assert "adb shell am start -n com.waytouch.editor/.BootstrapActivity" in start_s
 assert "--es com.waytouch.editor.IPC_TOKEN" in start_script
 assert 'connection.sendall(b"PING\\n")' in start_script
 assert 'reader.readline().strip() != "PONG"' in start_script
-assert 'connection.sendall(b"WTM3 1 13 0 0 0 0 0 0\\n")' in start_script
 assert "WTCH_MOUSE_HEALTH_OK" in start_script
 assert "adb shell am start-foreground-service -n com.waytouch.editor/.EditorService" not in start_script
 assert 'setDisplayId", Int::class.javaPrimitiveType' in touch_server
@@ -123,8 +133,11 @@ assert "frame.action == MotionEvent.ACTION_MOVE" in touch_server
 assert "frame.action != MotionEvent.ACTION_MOVE" in touch_server
 assert "cursorConnectionSlots" in service_source
 assert "cursorClientActive" in service_source
-assert 'connection.sendall(b"PING\\n")' in (ROOT / "gui/waytouch.py").read_text()
-assert 'connection.sendall(b"WTM3 1 13 0 0 0 0 0 0\\n")' in (ROOT / "gui/waytouch.py").read_text()
+gui_source = (ROOT / "gui/waytouch.py").read_text()
+rust_mouse = (ROOT / "rust-host/src/android_mouse.rs").read_text()
+assert gui_source.count('connection.sendall(b"PING\\n")') >= 3
+status_worker = gui_source.split("class _StatusProbeWorker", 1)[1].split("class WayTouchBackend", 1)[0]
+assert "27183" not in status_worker, "periodic status probes must not compete for the exclusive touch controller"
 assert "def _schedule_adb_recovery" in (ROOT / "gui/waytouch.py").read_text()
 assert "def _schedule_server_recovery" in (ROOT / "gui/waytouch.py").read_text()
 assert "workerPool.execute { serveCursorClient(client) }" in service_source
@@ -150,6 +163,19 @@ assert "droppedMotion += 1L" in mouse_server
 assert "BufferedInputStream(client.getInputStream()" in mouse_server
 assert "DROPPABLE_ACTIONS = setOf(3, 7, 8, 9, 10)" in mouse_server
 assert "rawAction in DROPPABLE_ACTIONS" in mouse_server
+assert "private val controllerActive = AtomicBoolean(false)" in mouse_server
+assert "controllerActive.compareAndSet(false, true)" in mouse_server
+assert 'line != "CONTROL"' in mouse_server
+assert 'output.write("OK CONTROL\\n".toByteArray(Charsets.US_ASCII))' in mouse_server
+assert 'if (line == "PING")' in mouse_server
+assert 'output.write("PONG\\n".toByteArray(Charsets.US_ASCII))' in mouse_server
+assert 'probeFields[2] == "13"' in mouse_server
+assert "zeroPayload" in mouse_server
+assert "writeAck(output, sequence)" in mouse_server
+assert "ThreadPoolExecutor(\n        2, 2" in mouse_server
+assert mouse_server.count("line = readBoundedLine(input, MAX_LINE_LENGTH) ?: break") == 4
+assert 'connection.writer.write_all(b"CONTROL\\n")' in rust_mouse
+assert 'response.trim_end_matches([\'\\r\', \'\\n\']) != "OK CONTROL"' in rust_mouse
 assert 'FIELD_SEPARATOR = Regex("' in mouse_server
 assert "split(FIELD_SEPARATOR)" in mouse_server
 assert "MotionEvent.ACTION_BUTTON_PRESS" in mouse_server

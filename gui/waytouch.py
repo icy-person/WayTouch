@@ -131,25 +131,18 @@ class _StatusProbeWorker(QThread):
 
     def run(self) -> None:
         try:
-            with socket.create_connection(("127.0.0.1", 27183), timeout=0.75) as connection:
-                connection.settimeout(0.75)
-                _authenticate_socket(connection)
+            # The main touch socket is a single-controller stream. Probing it
+            # while the Rust controller owns it creates noisy rejected clients;
+            # server readiness is checked from its process log instead.
 
             if self._mouse_enabled:
                 with socket.create_connection(("127.0.0.1", 27186), timeout=0.75) as connection:
                     connection.settimeout(0.75)
                     _authenticate_socket(connection)
-                    connection.sendall(b"WTM3 1 13 0 0 0 0 0 0\n")
+                    connection.sendall(b"PING\n")
                     with connection.makefile("r", encoding="ascii") as reader:
-                        ack = reader.readline().split()
-                        if len(ack) != 4 or ack[0] != "WTMA3" or ack[1] != "1":
-                            raise ConnectionError("Android mouse channel did not return a valid WTM3 position ACK")
-                        try:
-                            x, y = float(ack[2]), float(ack[3])
-                        except ValueError as exc:
-                            raise ConnectionError("Android mouse channel returned invalid cursor coordinates") from exc
-                        if not (math.isfinite(x) and math.isfinite(y) and x >= 0 and y >= 0):
-                            raise ConnectionError("Android mouse channel returned invalid cursor coordinates")
+                        if reader.readline().strip() != "PONG":
+                            raise ConnectionError("Android mouse health probe did not receive PONG")
 
             if self._cursor_enabled:
                 with socket.create_connection(("127.0.0.1", 27185), timeout=0.75) as connection:
@@ -502,11 +495,15 @@ class WayTouchBackend(QObject):
                 for direction in ("up", "left", "down", "right")
             }
             if value == "mouse":
-                candidates = (272, 273, 274, 275, 276)
+                candidates = tuple(range(272, 288))
             else:
-                candidates = (33, 18, 16, 19, 34, 57, 42, 15, 46, 47, 45, 44, 2, 3, 4, 5)
+                preferred = (33, 18, 16, 19, 34, 57, 42, 15, 46, 47, 45, 44, 2, 3, 4, 5)
+                candidates = preferred + tuple(
+                    code for code in range(1, 768)
+                    if code not in preferred and code not in range(272, 288)
+                )
             current_code = int(buttons[index].get("code", -1))
-            allowed = set(range(272, 288)) if value == "mouse" else set(range(768))
+            allowed = set(range(272, 288)) if value == "mouse" else (set(range(1, 768)) - set(range(272, 288)))
             if current_code not in allowed or current_code in used or (
                 value == "key" and (current_code in movement_codes or current_code in reserved_keys)
             ):
@@ -544,15 +541,12 @@ class WayTouchBackend(QObject):
             self._set_status("Stop the controller before adding action bindings.")
             return
         buttons = self._profile.setdefault("buttons", [])
-        if len(buttons) >= 9:
-            self._set_status("The touch protocol supports at most 9 action buttons plus the movement pointer.")
-            return
         mouse_codes = {
             int(button.get("code", -1))
             for button in buttons
             if button.get("source") == "mouse"
         }
-        if (code := next((item for item in (272, 273, 274, 275, 276) if item not in mouse_codes), None)) is not None:
+        if (code := next((item for item in range(272, 288) if item not in mouse_codes), None)) is not None:
             source = "mouse"
         else:
             key_codes = {
@@ -562,8 +556,13 @@ class WayTouchBackend(QObject):
             }
             movement = self._profile.get("movement", {}).get("keys", {})
             reserved = {int(movement.get(direction, -1)) for direction in ("up", "left", "down", "right")}
-            candidates = (33, 18, 16, 19, 34, 57, 42, 15, 46, 47, 45, 44, 2, 3, 4, 5)
-            code = next((item for item in candidates if item not in key_codes and item not in reserved), None)
+            reserved_keys = {1, 29, 56, 59, 60, 61, 97, 100}
+            preferred = (33, 18, 16, 19, 34, 57, 42, 15, 46, 47, 45, 44, 2, 3, 4, 5)
+            candidates = preferred + tuple(
+                item for item in range(1, 768)
+                if item not in preferred and item not in range(272, 288)
+            )
+            code = next((item for item in candidates if item not in key_codes and item not in reserved and item not in reserved_keys), None)
             source = "key"
         if code is None:
             self._set_status("No unused keyboard or mouse trigger is available.")
@@ -1025,18 +1024,10 @@ class WayTouchBackend(QObject):
                 with socket.create_connection(("127.0.0.1", 27186), timeout=0.75) as connection:
                     connection.settimeout(0.75)
                     _authenticate_socket(connection)
-                    connection.sendall(b"WTM3 1 13 0 0 0 0 0 0\n")
+                    connection.sendall(b"PING\n")
                     with connection.makefile("r", encoding="ascii") as reader:
-                        acknowledgement = reader.readline().split()
-                        if (len(acknowledgement) != 4 or acknowledgement[0] != "WTMA3"
-                                or acknowledgement[1] != "1"):
-                            raise ConnectionError("Android SOURCE_MOUSE did not return a valid WTM3 position acknowledgement")
-                        try:
-                            x, y = float(acknowledgement[2]), float(acknowledgement[3])
-                        except ValueError as exc:
-                            raise ConnectionError("Android SOURCE_MOUSE returned invalid cursor coordinates") from exc
-                        if not (math.isfinite(x) and math.isfinite(y) and x >= 0 and y >= 0):
-                            raise ConnectionError("Android SOURCE_MOUSE returned non-finite cursor coordinates")
+                        if reader.readline().strip() != "PONG":
+                            raise ConnectionError("Android SOURCE_MOUSE did not answer PING")
             if cursor_config.get("enabled", True):
                 with socket.create_connection(("127.0.0.1", 27185), timeout=0.75) as connection:
                     connection.settimeout(0.75)
