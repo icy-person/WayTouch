@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ویرایشگر WayTouch</string>
+    <string name="main_subtitle">ویرایش چیدمان کنترل بازی اندروید</string>
+    <string name="main_description">جوی‌استیک مجازی و دکمه‌های بازی را روی صفحه تنظیم کنید. با ذخیره، چیدمان برای کنترلر لینوکس اعمال می‌شود.</string>
+    <string name="overlay_permission">اجازهٔ نمایش روی بازی‌ها</string>
+    <string name="enable_controls">فعال‌سازی کنترل‌های اعلان</string>
+    <string name="refresh_status">به‌روزرسانی وضعیت</string>
+    <string name="notification_help">برای باز و بسته کردن ویرایشگر بدون خروج از بازی از اعلان WayTouch استفاده کنید.</string>
+    <string name="overlay_granted">مجوز نمایش روی برنامه‌ها فعال است</string>
+    <string name="overlay_required">مجوز نمایش روی برنامه‌ها لازم است</string>
+    <string name="notifications_enabled">اعلان‌ها فعال هستند</string>
+    <string name="notifications_disabled">اعلان‌ها غیرفعال هستند</string>
+    <string name="session_missing">نشست امن میزبان فعال نیست؛ ابتدا WayTouch را در لینوکس اجرا کنید.</string>
+    <string name="layout_connected">سرویس چیدمان متصل است</string>
+    <string name="layout_unavailable">سرویس چیدمان در دسترس نیست</string>
+    <string name="cursor_connected">سرویس نشانگر متصل است</string>
+    <string name="cursor_unavailable">سرویس نشانگر در دسترس نیست</string>
+    <string name="status_checking">در حال بررسی سلامت ارتباط…</string>
+    <string name="status_version">نسخهٔ %1$s · اندروید %2$d</string>
+    <string name="permission_toast">ابتدا مجوز نمایش روی برنامه‌ها را فعال کنید.</string>
+    <string name="service_enabled">کنترل‌های اعلان WayTouch فعال شدند.</string>
+</resources>

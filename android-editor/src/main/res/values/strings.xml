@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WayTouch Editor</string>
+    <string name="main_subtitle">Android game-control layout editor</string>
+    <string name="main_description">Arrange the virtual joystick and action buttons over your game. Save to apply the layout to the Linux controller.</string>
+    <string name="overlay_permission">Allow display over games</string>
+    <string name="enable_controls">Enable notification controls</string>
+    <string name="refresh_status">Refresh status</string>
+    <string name="notification_help">Use the WayTouch notification to open or close the editor without leaving the game.</string>
+    <string name="overlay_granted">Overlay permission granted</string>
+    <string name="overlay_required">Overlay permission required</string>
+    <string name="notifications_enabled">Notifications enabled</string>
+    <string name="notifications_disabled">Notifications disabled</string>
+    <string name="session_missing">Secure host session is not active. Start WayTouch on Linux.</string>
+    <string name="layout_connected">Layout service connected</string>
+    <string name="layout_unavailable">Layout service unavailable</string>
+    <string name="cursor_connected">Cursor service connected</string>
+    <string name="cursor_unavailable">Cursor service unavailable</string>
+    <string name="status_checking">Checking connection health…</string>
+    <string name="status_version">Version %1$s · Android %2$d</string>
+    <string name="permission_toast">Grant overlay permission first.</string>
+    <string name="service_enabled">WayTouch notification controls enabled.</string>
+</resources>

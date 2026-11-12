@@ -1,0 +1,140 @@
+{
+  "layout_revision": 1793879447629,
+  "display": {
+    "width": 1920,
+    "height": 1042,
+    "rotation": 0
+  },
+  "devices": {
+    "keyboard": [
+      "/dev/input/by-path/platform-i8042-serio-0-event-kbd"
+    ],
+    "mouse": [
+      "/dev/input/by-id/usb-15ca_USB_Optical_Mouse-event-mouse"
+    ],
+    "suppress": [
+      "/dev/input/by-path/platform-AMDI0010:03-event-mouse"
+    ]
+  },
+  "movement": {
+    "center": [
+      0.17999999,
+      0.825
+    ],
+    "radius": 0.14856073,
+    "keys": {
+      "up": 17,
+      "left": 30,
+      "down": 31,
+      "right": 32
+    }
+  },
+  "mouse": {
+    "enabled": true,
+    "cursor_speed": 1.58,
+    "native_buttons": true,
+    "cursor": {
+      "enabled": true,
+      "style": "pointer",
+      "size": 28.0,
+      "color": "#ff3158",
+      "hide_while_aiming": true
+    },
+    "look": {
+      "enabled": true,
+      "mode": "touch_drag",
+      "hold_button": 273,
+      "activation_mode": "toggle",
+      "hold_button_passthrough": true,
+      "sensitivity_x": 1.0,
+      "sensitivity_y": 1.0,
+      "invert_y": false,
+      "smoothing": 0.0,
+      "deadzone": 0.0,
+      "rate_cap_hz": 240,
+      "acceleration": {
+        "enabled": false,
+        "threshold": 1.2,
+        "max_gain": 2.5,
+        "exponent": 1.35
+      },
+      "touch_anchor": [
+        0.76,
+        0.55
+      ],
+      "touch_bounds": [
+        0.52,
+        0.06,
+        0.98,
+        0.94
+      ],
+      "touch_scale": 1.0,
+      "edge_recenter": true
+    }
+  },
+  "buttons": [
+    {
+      "name": "jump",
+      "source": "key",
+      "code": 57,
+      "position": [
+        0.75,
+        0.895
+      ]
+    },
+    {
+      "name": "reload",
+      "source": "key",
+      "code": 19,
+      "position": [
+        0.955,
+        0.775
+      ]
+    },
+    {
+      "name": "fire",
+      "source": "mouse",
+      "code": 272,
+      "position": [
+        0.825,
+        0.71999997
+      ]
+    },
+    {
+      "name": "aim",
+      "source": "mouse",
+      "code": 273,
+      "position": [
+        0.91999996,
+        0.59
+      ]
+    },
+    {
+      "name": "crouch",
+      "source": "key",
+      "code": 46,
+      "position": [
+        0.875,
+        0.895
+      ]
+    },
+    {
+      "name": "sprint",
+      "source": "key",
+      "code": 42,
+      "position": [
+        0.89,
+        0.105
+      ]
+    },
+    {
+      "name": "interact",
+      "source": "key",
+      "code": 33,
+      "position": [
+        0.76,
+        0.59999996
+      ]
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+# Rust build artifacts
+/target/
+/rust-host/target/
+**/target/
+
+# Local developer toolchains and Python environment
+/.tools/
+.venv/
+
+# Gradle / Android build artifacts
+.gradle/
+**/.gradle/
+**/build/
+**/build-dex/
+**/.cxx/
+**/.externalNativeBuild/
+local.properties
+**/local.properties
+
+# Generated binaries and packages
+*.apk
+*.aab
+*.dex
+*.class
+*.jar
+*.log
+d8.log
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+
+# Local backups and historical snapshots
+/backups/
+**/*.bak
+**/*.bak-*
+**/*.before-*
+**/src.before-*/
+
+# IDE / OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+*.swp
+*.swo
+*.tmp
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+/.openidea/
+/.editorconfig
+/.gitignore
